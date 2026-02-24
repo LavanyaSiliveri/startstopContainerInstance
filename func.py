@@ -22,6 +22,7 @@ def handler(ctx, data: io.BytesIO = None):
 
         ocid = body.get("ocid", "").strip()
         action = body.get("action", "toggle").lower()
+        notification_topic_ocid = body.get("notification_topic_ocid", "").strip()
 
         if not ocid:
             return response.Response(
@@ -43,8 +44,12 @@ def handler(ctx, data: io.BytesIO = None):
                 status_code=400,
             )
 
-        logging.getLogger().info(f"Action: {action} | OCID: {ocid}")
-        status = startstopContainerInstance.startstopContainerInstance(ocid=ocid, action=action)
+        logging.getLogger().info(f"Action: {action} | OCID: {ocid} | Topic: {notification_topic_ocid or 'not set'}")
+        status = startstopContainerInstance.startstopContainerInstance(
+            ocid=ocid,
+            action=action,
+            notification_topic_ocid=notification_topic_ocid or None,
+        )
 
         return response.Response(
             ctx,
