@@ -13,7 +13,7 @@ def get_container_instance_client():
         signer = oci.auth.signers.get_resource_principals_signer()
         return oci.container_instances.ContainerInstanceClient(config={}, signer=signer)
     except Exception as e:
-        config = oci.config.from_file("~/.oci/config", "us-ashburn-1")
+        config = oci.config.from_file("~/.oci/config", "<region-name>")
         return oci.container_instances.ContainerInstanceClient(config)
 
 
