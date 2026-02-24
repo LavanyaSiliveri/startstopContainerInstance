@@ -13,7 +13,26 @@ def handler(ctx, data: io.BytesIO = None):
     try:
         logging.getLogger().info("Invoking startstopContainerInstance function")
 
-        status = startstopContainerInstance.startstopContainerInstance()
+        action = "toggle"
+        if data:
+            try:
+                body = json.loads(data.getvalue())
+                action = body.get("action", "toggle").lower()
+            except (ValueError, Exception):
+                pass  # No body or invalid JSON — default to toggle
+
+        if action not in ("start", "stop", "toggle"):
+            return response.Response(
+                ctx,
+                response_data=json.dumps(
+                    {"error": f"Invalid action '{action}'. Must be 'start', 'stop', or 'toggle'."}
+                ),
+                headers={"Content-Type": "application/json"},
+                status_code=400,
+            )
+
+        logging.getLogger().info(f"Action requested: {action}")
+        status = startstopContainerInstance.startstopContainerInstance(action=action)
 
         return response.Response(
             ctx,

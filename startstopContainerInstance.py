@@ -16,7 +16,7 @@ def get_container_instance_client():
         signer = oci.auth.signers.get_resource_principals_signer()
         return oci.container_instances.ContainerInstanceClient(config={}, signer=signer)
     except Exception as e:
-        config = oci.config.from_file("~/.oci/config", "<region-name>")
+        config = oci.config.from_file("~/.oci/config", "us-ashburn-1")
         return oci.container_instances.ContainerInstanceClient(config)
 
 
@@ -25,7 +25,7 @@ def get_secrets_client():
         signer = oci.auth.signers.get_resource_principals_signer()
         return oci.secrets.SecretsClient(config={}, signer=signer)
     except Exception as e:
-        config = oci.config.from_file("~/.oci/config", "<region-name>")
+        config = oci.config.from_file("~/.oci/config", "us-ashburn-1")
         return oci.secrets.SecretsClient(config)
 
 
@@ -87,8 +87,41 @@ def stop_instance(ocid):
         return None
 
 
-def startstopContainerInstance():
-    secret_id = "<secret-ocid>"
+def _do_start(ocid):
+    """Start the instance and wait for ACTIVE. Returns outcome string."""
+    if start_instance(ocid) is None:
+        return "Failed to start container instance."
+    logger.info("Start requested. Waiting for instance to become ACTIVE...")
+    try:
+        wait_for_state(ocid, "ACTIVE")
+        outcome = "Container instance has been successfully started."
+    except TimeoutError as e:
+        outcome = str(e)
+    logger.info(outcome)
+    return outcome
+
+
+def _do_stop(ocid):
+    """Stop the instance and wait for INACTIVE. Returns outcome string."""
+    if stop_instance(ocid) is None:
+        return "Failed to stop container instance."
+    logger.info("Stop requested. Waiting for instance to become INACTIVE...")
+    try:
+        wait_for_state(ocid, "INACTIVE")
+        outcome = "Container instance has been successfully stopped."
+    except TimeoutError as e:
+        outcome = str(e)
+    logger.info(outcome)
+    return outcome
+
+
+def startstopContainerInstance(action="toggle"):
+    """
+    action: 'start'  — start the instance (no-op if already ACTIVE)
+            'stop'   — stop the instance  (no-op if already INACTIVE)
+            'toggle' — start if INACTIVE, stop if ACTIVE (default)
+    """
+    secret_id = "ocid1.vaultsecret.oc1.iad.amaaaaaady7f6oyameff45lzwluosztfigrsbns7qbi76xjhzhmwcgmjbbja"
     ocid = get_secret_value(secret_id)
 
     if not ocid:
@@ -96,7 +129,7 @@ def startstopContainerInstance():
         logger.error(outcome)
         return outcome
 
-    logger.info("Checking container instance status...")
+    logger.info(f"Checking container instance status (action={action})...")
     try:
         status = get_instance_status(ocid)
     except Exception as e:
@@ -106,36 +139,39 @@ def startstopContainerInstance():
 
     logger.info(f"Current container instance status: {status}")
 
-    if status == "ACTIVE":
-        if stop_instance(ocid) is None:
-            return "Failed to stop container instance."
+    if action == "start":
+        if status == "ACTIVE":
+            outcome = "Container instance is already ACTIVE. No action taken."
+            logger.info(outcome)
+            return outcome
+        elif status == "INACTIVE":
+            return _do_start(ocid)
+        else:
+            outcome = f"Container instance is in {status} state. Cannot start now."
+            logger.info(outcome)
+            return outcome
 
-        logger.info("Stop requested. Waiting for instance to become INACTIVE...")
-        try:
-            wait_for_state(ocid, "INACTIVE")
-            outcome = "Container instance has been successfully stopped."
-        except TimeoutError as e:
-            outcome = str(e)
-        logger.info(outcome)
-        return outcome
+    elif action == "stop":
+        if status == "INACTIVE":
+            outcome = "Container instance is already INACTIVE. No action taken."
+            logger.info(outcome)
+            return outcome
+        elif status == "ACTIVE":
+            return _do_stop(ocid)
+        else:
+            outcome = f"Container instance is in {status} state. Cannot stop now."
+            logger.info(outcome)
+            return outcome
 
-    elif status == "INACTIVE":
-        if start_instance(ocid) is None:
-            return "Failed to start container instance."
-
-        logger.info("Start requested. Waiting for instance to become ACTIVE...")
-        try:
-            wait_for_state(ocid, "ACTIVE")
-            outcome = "Container instance has been successfully started."
-        except TimeoutError as e:
-            outcome = str(e)
-        logger.info(outcome)
-        return outcome
-
-    else:
-        outcome = f"Container instance is in {status} state. No action taken."
-        logger.info(outcome)
-        return outcome
+    else:  # toggle
+        if status == "ACTIVE":
+            return _do_stop(ocid)
+        elif status == "INACTIVE":
+            return _do_start(ocid)
+        else:
+            outcome = f"Container instance is in {status} state. No action taken."
+            logger.info(outcome)
+            return outcome
 
 
 if __name__ == "__main__":
