@@ -88,7 +88,7 @@ def stop_instance(ocid):
 
 
 def startstopContainerInstance():
-    secret_id = "ocid1.vaultsecret.oc1.iad.amaaaaaady7f6oyameff45lzwluosztfigrsbns7qbi76xjhzhmwcgmjbbja"
+    secret_id = "ocid1.vaultsecret.oc1.iad.a*********"
     ocid = get_secret_value(secret_id)
 
     if not ocid:
