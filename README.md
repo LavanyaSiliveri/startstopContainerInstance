@@ -1,6 +1,6 @@
 # startstopContainerInstance — OCI Function
 
-An OCI Function that **starts, stops, or toggles** an OCI Container Instance. The Container Instance OCID and the desired action are passed directly in the JSON request body — no Vault secret required.
+An OCI Function that **starts, stops, or toggles** an OCI Container Instance. The Container Instance OCID and the desired action are passed directly in the JSON request body 
 
 Supports explicit `start` / `stop` actions, making it suitable for **OCI Scheduled Jobs** to run the instance on a defined timetable (e.g. start at 8 AM, stop at 8 PM).
 
