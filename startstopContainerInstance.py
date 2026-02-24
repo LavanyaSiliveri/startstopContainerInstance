@@ -16,7 +16,7 @@ def get_container_instance_client():
         signer = oci.auth.signers.get_resource_principals_signer()
         return oci.container_instances.ContainerInstanceClient(config={}, signer=signer)
     except Exception as e:
-        config = oci.config.from_file("~/.oci/config", "us-asburn-1")
+        config = oci.config.from_file("~/.oci/config", "<region-name>")
         return oci.container_instances.ContainerInstanceClient(config)
 
 
@@ -25,7 +25,7 @@ def get_secrets_client():
         signer = oci.auth.signers.get_resource_principals_signer()
         return oci.secrets.SecretsClient(config={}, signer=signer)
     except Exception as e:
-        config = oci.config.from_file("~/.oci/config", "us-asburn-1")
+        config = oci.config.from_file("~/.oci/config", "<region-name>")
         return oci.secrets.SecretsClient(config)
 
 
@@ -88,7 +88,7 @@ def stop_instance(ocid):
 
 
 def startstopContainerInstance():
-    secret_id = "ocid1.vaultsecret.oc1.iad.a*********"
+    secret_id = "<secret-ocid>"
     ocid = get_secret_value(secret_id)
 
     if not ocid:
