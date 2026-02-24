@@ -13,13 +13,25 @@ def handler(ctx, data: io.BytesIO = None):
     try:
         logging.getLogger().info("Invoking startstopContainerInstance function")
 
-        action = "toggle"
+        body = {}
         if data:
             try:
                 body = json.loads(data.getvalue())
-                action = body.get("action", "toggle").lower()
             except (ValueError, Exception):
-                pass  # No body or invalid JSON — default to toggle
+                pass
+
+        ocid = body.get("ocid", "").strip()
+        action = body.get("action", "toggle").lower()
+
+        if not ocid:
+            return response.Response(
+                ctx,
+                response_data=json.dumps(
+                    {"error": "Missing required parameter 'ocid' in request body."}
+                ),
+                headers={"Content-Type": "application/json"},
+                status_code=400,
+            )
 
         if action not in ("start", "stop", "toggle"):
             return response.Response(
@@ -31,8 +43,8 @@ def handler(ctx, data: io.BytesIO = None):
                 status_code=400,
             )
 
-        logging.getLogger().info(f"Action requested: {action}")
-        status = startstopContainerInstance.startstopContainerInstance(action=action)
+        logging.getLogger().info(f"Action: {action} | OCID: {ocid}")
+        status = startstopContainerInstance.startstopContainerInstance(ocid=ocid, action=action)
 
         return response.Response(
             ctx,

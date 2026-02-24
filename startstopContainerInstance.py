@@ -1,7 +1,4 @@
-import io
-import json
 import oci
-import base64
 import logging
 import traceback
 import time
@@ -18,28 +15,6 @@ def get_container_instance_client():
     except Exception as e:
         config = oci.config.from_file("~/.oci/config", "us-ashburn-1")
         return oci.container_instances.ContainerInstanceClient(config)
-
-
-def get_secrets_client():
-    try:
-        signer = oci.auth.signers.get_resource_principals_signer()
-        return oci.secrets.SecretsClient(config={}, signer=signer)
-    except Exception as e:
-        config = oci.config.from_file("~/.oci/config", "us-ashburn-1")
-        return oci.secrets.SecretsClient(config)
-
-
-def get_secret_value(secret_id):
-    try:
-        secrets_client = get_secrets_client()
-        secret_bundle = secrets_client.get_secret_bundle(secret_id)
-        secret_content = base64.b64decode(
-            secret_bundle.data.secret_bundle_content.content
-        )
-        return secret_content.decode("utf-8").strip()
-    except Exception as e:
-        logger.error(f"Failed to retrieve secret value: {e}")
-        return None
 
 
 def get_instance_status(ocid):
@@ -115,20 +90,13 @@ def _do_stop(ocid):
     return outcome
 
 
-def startstopContainerInstance(action="toggle"):
+def startstopContainerInstance(ocid, action="toggle"):
     """
+    ocid:   Container Instance OCID passed directly in the request body.
     action: 'start'  — start the instance (no-op if already ACTIVE)
             'stop'   — stop the instance  (no-op if already INACTIVE)
             'toggle' — start if INACTIVE, stop if ACTIVE (default)
     """
-    secret_id = "ocid1.vaultsecret.oc1.iad.amaaaaaady7f6oyameff45lzwluosztfigrsbns7qbi76xjhzhmwcgmjbbja"
-    ocid = get_secret_value(secret_id)
-
-    if not ocid:
-        outcome = "Failed to retrieve the OCID from the vault secret."
-        logger.error(outcome)
-        return outcome
-
     logger.info(f"Checking container instance status (action={action})...")
     try:
         status = get_instance_status(ocid)
@@ -175,4 +143,10 @@ def startstopContainerInstance(action="toggle"):
 
 
 if __name__ == "__main__":
-    startstopContainerInstance()
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: python startstopContainerInstance.py <ocid> [start|stop|toggle]")
+        sys.exit(1)
+    _ocid = sys.argv[1]
+    _action = sys.argv[2] if len(sys.argv) > 2 else "toggle"
+    print(startstopContainerInstance(ocid=_ocid, action=_action))
